@@ -5,15 +5,27 @@ export async function POST(req: Request) {
   try {
     const { image } = await req.json()
 
-    if (!process.env.OPENAI_API_KEY) {
+    const apiKey = process.env.OPENAI_API_KEY
+    console.log('[v0] API Key exists:', !!apiKey)
+    console.log('[v0] API Key length:', apiKey?.length)
+    console.log('[v0] API Key prefix:', apiKey?.substring(0, 7))
+
+    if (!apiKey) {
       return Response.json(
         { error: 'OPENAI_API_KEY is not configured' },
         { status: 500 }
       )
     }
 
+    if (!apiKey.startsWith('sk-')) {
+      return Response.json(
+        { error: 'Invalid API key format - OpenAI keys should start with "sk-"' },
+        { status: 500 }
+      )
+    }
+
     const openai = createOpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
+      apiKey: apiKey,
     })
 
     const result = await generateText({
