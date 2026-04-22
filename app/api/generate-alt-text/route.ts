@@ -1,10 +1,16 @@
 import { generateText } from 'ai'
+import { openai } from '@ai-sdk/openai'
 
 export async function POST(req: Request) {
   const { image } = await req.json()
 
+  // Use OpenAI provider with API key if available, otherwise use Vercel AI Gateway
+  const model = process.env.OPENAI_API_KEY 
+    ? openai('gpt-4o-mini')
+    : 'openai/gpt-4o-mini'
+
   const result = await generateText({
-    model: 'openai/gpt-5-mini',
+    model,
     messages: [
       {
         role: 'user',
