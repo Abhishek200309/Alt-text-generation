@@ -1,23 +1,30 @@
 import { generateText } from 'ai'
-import { openai } from '@ai-sdk/openai'
+import { createOpenAI } from '@ai-sdk/openai'
 
 export async function POST(req: Request) {
-  const { image } = await req.json()
+  try {
+    const { image } = await req.json()
 
-  // Use OpenAI provider with API key if available, otherwise use Vercel AI Gateway
-  const model = process.env.OPENAI_API_KEY 
-    ? openai('gpt-4o-mini')
-    : 'openai/gpt-4o-mini'
+    if (!process.env.OPENAI_API_KEY) {
+      return Response.json(
+        { error: 'OPENAI_API_KEY is not configured' },
+        { status: 500 }
+      )
+    }
 
-  const result = await generateText({
-    model,
-    messages: [
-      {
-        role: 'user',
-        content: [
-          {
-            type: 'text',
-            text: `Generate a concise but descriptive alt text for this image. The alt text should:
+    const openai = createOpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    })
+
+    const result = await generateText({
+      model: openai('gpt-4o-mini'),
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: `Generate a concise but descriptive alt text for this image. The alt text should:
 - Be 1-2 sentences maximum
 - Describe the main subject and any important details
 - Be written for screen reader users
@@ -25,17 +32,24 @@ export async function POST(req: Request) {
 - Be objective and factual
 
 Return only the alt text, nothing else.`,
-          },
-          {
-            type: 'image',
-            image,
-          },
-        ],
-      },
-    ],
-  })
+            },
+            {
+              type: 'image',
+              image,
+            },
+          ],
+        },
+      ],
+    })
 
-  return Response.json({
-    altText: result.text.trim(),
-  })
+    return Response.json({
+      altText: result.text.trim(),
+    })
+  } catch (error) {
+    console.error('[v0] Alt text generation error:', error)
+    return Response.json(
+      { error: error instanceof Error ? error.message : 'Failed to generate alt text' },
+      { status: 500 }
+    )
+  }
 }
